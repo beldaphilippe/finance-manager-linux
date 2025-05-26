@@ -1,0 +1,198 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 2em;
+    background-color: #f9f9f9;
+    text-align: center;
+}
+
+form {
+    margin-bottom: 2em;
+}
+
+/* entry form === */
+#entry-form {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+#entry-form > div {
+    display: flex;
+    flex-direction: column;
+    /* width: 150px; /\* same width for all boxes *\/ */
+}
+
+#entry-form button:hover {
+    opacity: 0.8;
+}
+
+#entry-form label {
+    margin-bottom: 0.3rem;
+    font-weight: bold;
+}
+
+#amount {
+    width: 6em;
+}
+
+#description {
+    width: 20em;
+}
+
+#entry-form input,
+#entry-form select {
+    padding: 0.4rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* buttons === */
+button {
+    padding: 0.5em 1em;
+    font-size: 1em;
+    background-color: #5c9ded;
+    border: none;
+    color: white;
+    cursor: pointer;
+    margin-left: 0.5em;
+}
+
+.entries-table button {
+    padding: 0em 0.5em;
+    font-size: 1em;
+    background-color: rgba(0,0,0,0);
+    border: none;
+    color: black;
+    cursor: pointer;
+    margin-left: 0.1em;
+}
+
+/* chart === */
+canvas {
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+}
+
+/* table row === */
+.table-row {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    flex-wrap: nowrap; /* dont allows them to stack on small screens */
+}
+
+.table-box {
+    flex: 1;
+    min-width: 300px;
+    max-width: 100%;
+}
+
+table {
+    /* table-layout: fixed; */
+    width: 100%;
+    border-collapse: collapse;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+th, td {
+    padding: 0.6em 1em;
+    border: 1px solid #ccc;
+    text-align: left;
+}
+
+td button {
+    display: inline-block;
+    margin-right: 0.4em;
+    vertical-align: middle;
+}
+
+thead {
+    background-color: #f0f0f0;
+}
+
+/* table format === */
+
+
+
+
+.entries-table th::after {
+    content: " ↕";
+    font-size: 1em;
+    color: #888;
+}
+
+.editable-cell input,
+.editable-cell select {
+  width: 100%;
+  /* box-sizing: border-box; */
+  font: inherit; /* match table cell font */
+  padding: 0.2em;
+}
+
+/* amount */
+#current-month-table th:nth-child(2),
+#current-month-table td:nth-child(2) {
+    width: 4em;
+}
+
+/* category */
+#current-month-table th:nth-child(4),
+#current-month-table td:nth-child(4) {
+    width: 12em;
+}
+
+/* actions */
+.entries-table th:nth-child(5),
+.entries-table td:nth-child(5) {
+    width: 5em;
+}
+
+.button-group {
+  display: inline-flex;         /* ensures horizontal layout */
+  gap: 0.5em;                   /* spacing between buttons */
+  align-items: center;
+}
+
+.button-group button {
+  font-size: 1rem;
+  padding: 0px 0.3rem;
+  cursor: pointer;
+}
+
+.button-group button:hover {
+    opacity: 0.8;
+    color: red;
+}
+
+/* Category color styles ===*/
+.cat-deplacement {
+    background-color: #d5f5e3;
+    color: #145a32;
+    font-weight: bold;
+}
+
+.cat-virement {
+    background-color: #f9e79f;
+    color: #7d6608;
+    font-weight: bold;
+}
+
+.cat-nourriture_colloc {
+    background-color: #d6eaf8;
+    color: #154360;
+    font-weight: bold;
+}
+
+.cat-nourriture_perso {
+    background-color: #f5cba7;
+    color: #6e2c00;
+    font-weight: bold;
+}
+
+.cat-jeux {
+    background-color: #f5b7b1;
+    color: #922b21;
+    font-weight: bold;
+}
