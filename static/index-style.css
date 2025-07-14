@@ -1,0 +1,42 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 2em;
+    background-color: #f9f9f9;
+    text-align: center;
+}
+
+/* .background-img { */
+/*     background-image: url('money_wallpaper.jpg'); */
+/*     background-repeat: no-repeat; */
+/*     background-position: center; */
+/*     background-size: cover; */
+/*     background-attachment: fixed; */
+/* } */
+
+.background-image::before {
+    background-image: url('money_wallpaper.jpg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.9);  /* semi-transparent black */
+    z-index: 0;
+    filter: blur(8px);
+}
+
+div {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    
+    position: absolute;
+    top:0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    
+    margin: auto;
+}

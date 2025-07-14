@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Login</title>
+</head>
+
+<body>
+  <h2>Login</h2>
+  <form method="post" action="{{ url_for('login') }}">
+    <label>Password:</label>
+    <input type="password" name="password">
+    <button type="submit">Login</button>
+  </form>
+  {% if error %}
+  <p style="color: red;">{{ error }}</p>
+  {% endif %}
+</body>
+
+</html>

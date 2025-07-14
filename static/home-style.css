@@ -9,6 +9,28 @@ form {
     margin-bottom: 2em;
 }
 
+/* options form ===*/
+#options-form {
+    display: flex;
+    gap: 1rem;
+}
+
+/* #options-form > div { */
+/*     display: flex; */
+/*     flex-direction: column; */
+/* } */
+
+
+#options-form button {
+    padding: 0.5em 1em;
+    font-size: 1em;
+    background-color: rgba(0,0,0,0.1);
+    border: none;
+    color: black;
+    cursor: pointer;
+    margin-left: 0.5em;
+}
+
 /* entry form === */
 #entry-form {
     display: flex;
@@ -69,6 +91,7 @@ button {
     margin-left: 0.1em;
 }
 
+
 /* chart === */
 canvas {
     background: #f9f9f9;
@@ -117,7 +140,7 @@ thead {
 
 
 
-.entries-table th::after {
+.entries-table th:not(:nth-child(5))::after {
     content: " ↕";
     font-size: 1em;
     color: #888;
@@ -167,32 +190,79 @@ thead {
 }
 
 /* Category color styles ===*/
-.cat-deplacement {
-    background-color: #d5f5e3;
-    color: #145a32;
-    font-weight: bold;
-}
+/* .cat-deplacement { */
+/*     background-color: #d5f5e3; */
+/*     color: #145a32; */
+/*     font-weight: bold; */
+/* } */
 
-.cat-virement {
-    background-color: #f9e79f;
-    color: #7d6608;
-    font-weight: bold;
-}
+/* .cat-virement { */
+/*     background-color: #f9e79f; */
+/*     color: #7d6608; */
+/*     font-weight: bold; */
+/* } */
 
-.cat-nourriture_colloc {
-    background-color: #d6eaf8;
-    color: #154360;
-    font-weight: bold;
-}
+/* .cat-nourriture_colloc { */
+/*     background-color: #d6eaf8; */
+/*     color: #154360; */
+/*     font-weight: bold; */
+/* } */
 
-.cat-nourriture_perso {
-    background-color: #f5cba7;
-    color: #6e2c00;
-    font-weight: bold;
-}
+/* .cat-nourriture_perso { */
+/*     background-color: #f5cba7; */
+/*     color: #6e2c00; */
+/*     font-weight: bold; */
+/* } */
 
-.cat-jeux {
-    background-color: #f5b7b1;
-    color: #922b21;
-    font-weight: bold;
-}
+/* .cat-jeux { */
+/*     background-color: #f5b7b1; */
+/*     color: #922b21; */
+/*     font-weight: bold; */
+/* } */
+/* === Category color tags for table cells === */
+
+/* .cat-deplacement { */
+/*   background-color: #A3E4D7;  /\* teal *\/ */
+/* } */
+
+/* .cat-virement { */
+/*   background-color: #F9E79F;  /\* soft yellow *\/ */
+/* } */
+
+/* .cat-nourriture_colloc { */
+/*   background-color: #AED6F1;  /\* light blue *\/ */
+/* } */
+
+/* .cat-nourriture_perso { */
+/*   background-color: #FAD7A0;  /\* orange/gold *\/ */
+/* } */
+
+/* .cat-divers { */
+/*   background-color: #D7DBDD;  /\* light gray *\/ */
+/* } */
+
+/* .cat-jeux { */
+/*   background-color: #F5B7B1;  /\* rose *\/ */
+/* } */
+
+/* .cat-abonnement { */
+/*   background-color: #D2B4DE;  /\* lavender *\/ */
+/* } */
+
+/* .cat-cadeaux { */
+/*   background-color: #F5CBA7;  /\* peach *\/ */
+/* } */
+
+/* /\* Optional: improve contrast *\/ */
+/* .cat-deplacement, */
+/* .cat-virement, */
+/* .cat-nourriture_colloc, */
+/* .cat-nourriture_perso, */
+/* .cat-divers, */
+/* .cat-jeux, */
+/* .cat-abonnement, */
+/* .cat-cadeaux { */
+/*   color: #333; */
+/*   font-weight: bold; */
+/*   text-align: center; */
+/* } */
