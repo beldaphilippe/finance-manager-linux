@@ -1,3 +1,8 @@
 .**
 !.gitignore
 data.db.gpg
+
+user_config/**
+local_backups/**
+data.db
+encrypted.db.gpg

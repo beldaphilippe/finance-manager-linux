@@ -162,7 +162,7 @@ def local_copy():
     if not os.path.exists(LOCAL_DB_PATH):
         return "<h3>No decrypted DB available</h3>", 404
 
-    backup_path = LOCAL_BACKUP_DIR + "expenses_" + datetime.now().strftime("%Y%m%d:%H%M%S.db.gpg")
+    backup_path = LOCAL_BACKUP_DIR + "expenses_" + datetime.now().strftime("%Y%m%d_%H%M%S.db.gpg")
     # Encrypt the DB file using subprocess
     try:
         subprocess.run([
