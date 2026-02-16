@@ -1,39 +1,55 @@
-const CATEGORY_CONFIG = {
-    deplacement: {
-        label: "déplacement",
-        color: "#A3E4D7",
-    },
-    virement: {
-        label: "virement",
-        color: "#F9E79F",
-    },
-    nourriture_colloc: {
-        label: "nourriture (colloc)",
-        color: "#AED6F1",
-    },
-    nourriture_perso: {
-        label: "nourriture (gâterie)",
-        color: "#FAD7A0",
-    },
-    divers: {
-        label: "divers",
-        color: "#D7DBDD",
-    },
-    jeux: {
-        label: "jeux",
-        color: "#F5B7B1",
-    },
-    abonnement: {
-        label: "abonnement",
-        color: "#D2B4DE",
-    },
-    cadeaux: {
-        label: "cadeaux",
-        color: "#F5CBA7",
-    }
-};
+// global var to store categories and associated colors
+// initialized in generateCategoryCSS
+const CATEGORY_CONFIG = {};
 
+// array of colors associated to categories
+const COLORS = [
+    "#FF6B6B",
+    "#4ECDC4",
+    "#45B7D1",
+    "#FFA07A",
+    "#98D8C8",
+    "#F7B801",
+    "#A29BFE",
+    "#FD79A8",
+    "#6C5CE7",
+    "#00B894"
+];
+
+function categoryToKey(label) {
+    if (Array.isArray(label) && label.length === 1) {
+        label = label[0];
+    }
+
+     if (typeof label !== "string") {
+        console.warn("Invalid category label:", label);
+        label = String(label); // convert numbers/other types to string
+    }
+
+    return label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+}
+
+async function initCategories() {
+    // get every category
+    const response = await fetch("/categories");
+    const categories = await response.json();
+
+    categories.forEach((label, index) => {
+        const color = COLORS[index % COLORS.length];
+        label = label[0]
+        key = categoryToKey(label)
+
+        CATEGORY_CONFIG[key] = { label, color };
+    });
+}
+
+
+// initiate categories
 function generateCategoryCSS() {
+    // get every category
     return Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => {
         return `.cat-${key} {
       background-color: ${cfg.color};
@@ -115,10 +131,18 @@ function renderTable(tableId, rows, options = {}) {
             const td = document.createElement("td");
             if (index === 0) {  // Date
                 td.textContent = new Date(cell).toLocaleDateString("fr-FR");
+            } else if (index === 1) { // Amount
+                const value = parseFloat(cell);
+                td.textContent = value.toFixed(2);
+
+                td.classList.add(
+                    value < 0 ? "amount-negative" : "amount-positive"
+                );
             } else if (index === 3 && cell) { // Categories
-                td.textContent = CATEGORY_CONFIG[cell].label || cell;
-                const categoryClass = "cat-" + cell.replace(/\s+/g, "-").toLowerCase();
-                td.classList.add(categoryClass);
+                const key = categoryToKey(cell);
+
+                td.textContent = CATEGORY_CONFIG[key].label || cell;
+                td.classList.add(`cat-${key}`);
             } else {
                 td.textContent = cell;
             }
@@ -214,8 +238,9 @@ async function loadChartData() {
     );
 
     const datasets = categories.map(category => {
+        const key = categoryToKey(category);
         return {
-            label: CATEGORY_CONFIG[category].label || category,
+            label: CATEGORY_CONFIG[key].label || category,
             data: months.map(month => monthlyCategoryTotals[month][category] || 0),
             backgroundColor: getCategoryColor(category),
         };
@@ -301,20 +326,30 @@ async function loadEntryTables() {
 
 async function deleteEntry(id) {
     const confirmed = confirm("Supprimer cette entrée ?");
+
+    // abort deletion
     if (!confirmed) return;
 
-    await fetch(`/delete/${id}`, {
+    const response = await fetch(`/delete/${id}`, {
         method: "DELETE",
     });
 
+    console.log(response);
+    if (!response.ok) {
+        console.log("Suppression error: ", response);
+        alert("Erreur lors de la suppression.");
+        return;
+    }
+
     loadEntryTables();
+    loadBalanceTable();
     loadChartData();
 }
 
 function startEditEntry(id, fields, rowElement) {
     rowElement.innerHTML = ""; // clear current row
 
-    const [date, amount, description, category] = fields;
+    const [date, amount, note, category] = fields;
 
     // Create editable inputs
     const dateInput = document.createElement("input");
@@ -328,7 +363,7 @@ function startEditEntry(id, fields, rowElement) {
 
     const descInput = document.createElement("input");
     descInput.type = "text";
-    descInput.value = description;
+    descInput.value = note;
 
     const categorySelect = document.createElement("select");
     for (const [val, config] of Object.entries(CATEGORY_CONFIG)) {
@@ -358,7 +393,7 @@ function startEditEntry(id, fields, rowElement) {
         await saveEditEntry(id, {
             date: dateInput.value,
             amount: amountInput.value,
-            description: descInput.value,
+            note: descInput.value,
             category: categorySelect.value
         });
     };
@@ -396,7 +431,9 @@ async function saveEditEntry(id, updatedEntry) {
 let lastEnteredDate = new Date().toISOString().substring(0, 10); // default today
 let warnOnExit = true;
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    // retrieve all available categories in <CATEGORY_CONFIG>
+    await initCategories();
     // Inject dynamic CSS for categories
     const style = document.createElement("style");
     style.innerHTML = generateCategoryCSS();
@@ -413,9 +450,8 @@ document.addEventListener("DOMContentLoaded", () => {
         
         if (button.id === "save") {
             // Call /save
-            
             await fetch("/save");
-            alert("Sauvegarde effectuée.");
+            // alert("Sauvegarde effectuée.");
         } else if (button.id === "logout") {
             // Redirect to /logout
             window.location.href = "/logout";
@@ -430,9 +466,24 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const entry_form = document.getElementById("entry-form");
     const dateInput = document.getElementById("date");
+    const amountInput = document.getElementById("amount");
 
     // Set default value on page load
     dateInput.value = lastEnteredDate;
+
+    // Color dependent on input sign
+    amountInput.addEventListener("input", () => {
+        const value = parseFloat(amountInput.value);
+
+        amountInput.classList.toggle(
+            "input-amount-negative",
+            value < 0
+        );
+        amountInput.classList.toggle(
+            "input-amount-positive",
+            value >= 0
+        );
+    });
 
     entry_form.addEventListener("submit", async (e) => {
         e.preventDefault();

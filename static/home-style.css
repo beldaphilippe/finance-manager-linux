@@ -57,8 +57,17 @@ form {
 #amount {
     width: 6em;
 }
+.input-amount-negative {
+  color: red;
+  /* border-color: red; */
+}
 
-#description {
+.input-amount-positive {
+  color: green;
+  /* border-color: green; */
+}
+
+#note {
     width: 20em;
 }
 
@@ -158,6 +167,15 @@ thead {
 #current-month-table th:nth-child(2),
 #current-month-table td:nth-child(2) {
     width: 4em;
+}
+.amount-positive {
+    color: green; /* green */
+    /* font-weight: bold; */
+}
+
+.amount-negative {
+    color: red; /* red */
+    /* font-weight: bold; */
 }
 
 /* category */

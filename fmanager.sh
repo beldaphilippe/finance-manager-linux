@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /usr/bin/env sh
 
 # # Function to run on Ctrl+C (SIGINT)
 # function cleanup {
@@ -14,5 +14,5 @@
 # # Set trap for SIGINT
 # trap cleanup INT
 
-firefox http://localhost:5000 &
-python app.py
+(sleep 0.5 && firefox http://localhost:5000) &
+python app.py $@

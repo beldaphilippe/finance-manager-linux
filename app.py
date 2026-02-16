@@ -1,34 +1,78 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
-import sqlite3
+#!/usr/bin/env python3
+
+# TODO: account support
+# check https://www.rustcodeweb.com/2025/05/flask-session-security.html for security (password/session management)
+
 import os
-import subprocess
+import sys
+from io import FileIO
+from subprocess import run, CalledProcessError
 import math
+import time
 from datetime import datetime
 
+# web server
+import flask
+
+# database
+from sqlite3 import connect
+import csv
+
+# secrets
+# import secrets
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Hash import SHA256  # <--- this is needed
+from Crypto.Random import get_random_bytes
+
+# google API
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
-import io
 
-# CONFIG
+## FORMAT ## ---
+
+# the file content is stored as csv, with the given fields
+# date;amount;note;category;account
+
+## CONFIG ## ---
 SCOPES = ['https://www.googleapis.com/auth/drive']
 CREDENTIALS_PATH = 'user_config/credentials.json'
 TOKEN_PATH = 'user_config/token.json'
+
 DRIVE_GPG_FILE_NAME = 'expenses.db.gpg'
 DRIVE_GPG_FILE_ID = '134bxZC1ktPRu5hoF-0tqZX5eItizu4Kl'
-LOCAL_GPG_PATH = 'encrypted.db.gpg'
-LOCAL_DB_PATH = 'data.db'
+DRIVE_FOLDER_ID = '185J3mWCeHYuU9s6Iev9_aJrzuMmlrWva'
+
+LOCAL_ENC_FILE = 'db.csv.enc'
+LOCAL_CSV_FILE = ".local_db.csv"
+LOCAL_SQL_FILE = '.local_db.sql'
 LOCAL_BACKUP_DIR = 'local_backups/'
 
-app = Flask(__name__)
-app.secret_key = 'super-secret-key'  # use a proper key in production
+SQL_TABLE_NAME = "Expenses"
+
+app = flask.Flask(__name__)
+app.secret_key = 'super-secret-key'  # secrets.token_hex(32)
+
+if not os.path.exists(LOCAL_SQL_FILE):
+    # create a new file for the database
+    f = open(LOCAL_SQL_FILE, "x")
+    f.close()
+else:
+    f = open(LOCAL_SQL_FILE, "w+")
+    f.close()
+
+app.config["DATABASE"] = LOCAL_SQL_FILE # custom setting, filepath for local sql database
+app.config["SOURCE_FILE"] = None        # custom setting, (string:<filepath>, bool:<encrypted>, bool:<from remote>)
+
+# encrypting/decrypting file ---
 
 # GPG decryption using subprocess
 def decrypt_gpg_file(input_path, output_path, passphrase):
     try:
-        result = subprocess.run(
+        result = run(
             ['gpg', '--batch', '--yes',
              '--passphrase', passphrase,
              '--pinentry-mode', 'loopback',
@@ -36,216 +80,421 @@ def decrypt_gpg_file(input_path, output_path, passphrase):
             capture_output=True, check=True, text=True
         )
         return True, result.stdout
-    except subprocess.CalledProcessError as e:
+    except CalledProcessError as e:
         return False, e.stderr
 
+# GPG encryption
+def encrypt_gpg_file(in_file, out_file, password):
+    try:
+        run(
+            ['gpg', '--batch', '--yes',
+             '--passphrase', password,
+             '--pinentry-mode', 'loopback',
+             '-o', out_file, '-c', in_file],
+            check=True
+        )
+    except CalledProcessError:
+        raise Exception("Failed to encrypt file")
+
+# encode a file
+def encrypt_AES256(in_file, enc_file, password):
+    # Read plaintext
+    with open(in_file, "rb") as f:
+        plaintext = f.read()
+
+    # Generate salt and IV (16 bytes each)
+    salt = get_random_bytes(16)
+    iv = get_random_bytes(16)
+
+    # Derive key using PBKDF2 (must match decoder exactly)
+    key = PBKDF2(
+        password,
+        salt,
+        dkLen=32,
+        count=65536,
+        hmac_hash_module=SHA256
+    )
+
+    # PKCS#7 padding
+    pad_len = AES.block_size - (len(plaintext) % AES.block_size)
+    padding = bytes([pad_len]) * pad_len
+    padded_plaintext = plaintext + padding
+
+    # Encrypt
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    ciphertext = cipher.encrypt(padded_plaintext)
+
+    # Write output: salt + iv + ciphertext
+    with open(enc_file, "wb") as f:
+        f.write(salt)
+        f.write(iv)
+        f.write(ciphertext)
+
+# decrypt a file encoded with the java algorithm used in the android app
+def decrypt_AES256(enc_file, out_file, password):
+    with open(enc_file, "rb") as f:
+        salt = f.read(16)
+        iv = f.read(16)
+        ciphertext = f.read()
+
+    # PBKDF2 with SHA256 (matches Java)
+    key = PBKDF2(password, salt, dkLen=32, count=65536, hmac_hash_module=SHA256)
+
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    plaintext = cipher.decrypt(ciphertext)
+
+    # Remove PKCS#7 padding
+    pad_len = plaintext[-1]
+    plaintext = plaintext[:-pad_len]
+
+    with open(out_file, "wb") as f:
+        f.write(plaintext)
+
+# Interacting with Google Drive ---
+
 # Google Drive: Get authenticated service
-def get_drive_service():
+# def get_drive_service(token_file, credentials_file, scopes, port):
+#     creds = None
+#     # token file not exists, or is older than 1 hour
+#     if not(os.path.exists(token_file)) or ( (time.time() - os.path.getmtime(token_file)) > 3600 ):
+#         flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes)
+#         creds = flow.run_local_server(port=port)
+#         with open(token_file, 'w+') as token:
+#             token.write(creds.to_json())
+#     else:
+#         creds = Credentials.from_authorized_user_file(token_file, scopes)
+#     return build('drive', 'v3', credentials=creds)
+
+def get_drive_service(token_file, credentials_file, scopes, port):
     creds = None
-    if os.path.exists(TOKEN_PATH):
-        creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
-    else:
-        flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_PATH, SCOPES)
-        creds = flow.run_local_server(port=8080)
-        with open(TOKEN_PATH, 'w') as token:
+    if os.path.exists(token_file):
+        creds = Credentials.from_authorized_user_file(token_file, scopes)
+    if not creds or not creds.valid:
+        flow = InstalledAppFlow.from_client_secrets_file(
+            credentials_file,
+            scopes
+        )
+        creds = flow.run_local_server(
+            port=port,
+            access_type="offline",
+            prompt="consent"
+        )
+        with open(token_file, "w") as token:
             token.write(creds.to_json())
-    return build('drive', 'v3', credentials=creds)
+    return build("drive", "v3", credentials=creds)
 
-# Download the encrypted file from Google Drive
-def download_encrypted_db():
-    service = get_drive_service()
-    # results = service.files().list(q=f"name='{ENCRYPTED_DRIVE_FILE_NAME}'",
-    #                                spaces='drive',
-    #                                fields="files(id, name)").execute()
-    # items = results.get('files', [])
-    # if not items:
-    #     raise Exception("Encrypted DB file not found in Google Drive")
-
-    # file_id = items[0]['id']
-    file_id = DRIVE_GPG_FILE_ID
-    request = service.files().get_media(fileId=file_id)
-    fh = io.FileIO(LOCAL_GPG_PATH, 'wb')
+# Download file from Google Drive
+def download_drive_file(service, in_file_id, out_file):
+    request = service.files().get_media(fileId=in_file_id)
+    fh = FileIO(out_file, 'wb')
     downloader = MediaIoBaseDownload(fh, request)
     done = False
     while not done:
         _, done = downloader.next_chunk()
 
-# Upload the encrypted DB back to Drive
-def upload_encrypted_db(passphrase):
-    # Encrypt the DB
-    encrypted_path = LOCAL_GPG_PATH
-    try:
-        subprocess.run(
-            ['gpg', '--batch', '--yes',
-             '--passphrase', passphrase,
-             '--pinentry-mode', 'loopback',
-             '-o', encrypted_path, '-c', LOCAL_DB_PATH],
-            check=True
+# Retrieve the most recent file in the given folder
+def get_most_recent_file_in_folder(service, folder_id):
+    results = (
+        service.files()
+        .list(
+            q=f"'{folder_id}' in parents and trashed = false",
+            orderBy="modifiedTime desc",
+            pageSize=1,
+            fields="files(id, name, modifiedTime)"
         )
-    except subprocess.CalledProcessError:
-        raise Exception("Failed to encrypt file")
+        .execute()
+    )
 
-    # Upload
-    service = get_drive_service()
-    # results = service.files().list(q=f"name='{ENCRYPTED_DRIVE_FILE_NAME}'",
-    #                                spaces='drive',
-    #                                fields="files(id, name)").execute()
-    # file_id = results['files'][0]['id']
-    file_id = DRIVE_GPG_FILE_ID
-    media = MediaFileUpload(encrypted_path, resumable=True)
-    service.files().update(fileId=file_id, media_body=media).execute()
+    files = results.get("files", [])
+    if not files:
+        return None
 
-# DB INIT
-def init_db():
-    conn = sqlite3.connect(LOCAL_DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS entries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT NOT NULL,
-            amount REAL NOT NULL,
-            description TEXT NOT NULL,
-            category TEXT NOT NULL
+    return files[0]
+
+# Upload the encrypted DB back to Drive, replace the most recent file
+# def upload_encrypted_db(passphrase):
+#     encrypted_path = LOCAL_GPG_PATH
+#     encrypt_gpg_file(LOCAL_DB_PATH, encrypted_path, passphrase)
+#     service = get_drive_service()
+#     # results = service.files().list(q=f"name='{ENCRYPTED_DRIVE_FILE_NAME}'",
+#     #                                spaces='drive',
+#     #                                fields="files(id, name)").execute()
+#     # file_id = results['files'][0]['id']
+#     file_id = get_most_recent_file_in_folder(service, DRIVE_FOLDER_ID)["id"]
+#     media = MediaFileUpload(encrypted_path, resumable=True)
+#     service.files().update(fileId=file_id, media_body=media).execute()
+
+# Upload <in_file> to <out_file_id>
+def upload_drive_file(service, in_file, out_file_id):
+    media = MediaFileUpload(in_file, resumable=True)
+    service.files().update(fileId=out_file_id, media_body=media).execute()
+
+## Database management ## ---
+
+def get_db(app):
+    if 'db' not in flask.g:
+        flask.g.db = connect(
+            app.config["DATABASE"],
+            # detect_types=sqlite3.PARSE_DECLTYPES
         )
-    ''')
-    conn.commit()
-    conn.close()
+        # flask.g.db.row_factory = sqlite3.Row
+    return flask.g.db
 
-# Routes
+# init a new sql database
+# <columns> is the string of columns names
+def init_db(app, columns):
+    db = get_db(app)
+    columns = "id INTEGER PRIMARY KEY AUTOINCREMENT," + columns
+    db.cursor().execute("CREATE TABLE IF NOT EXISTS {0} ({1})".format(SQL_TABLE_NAME, columns))
+    db.commit()
+    return db
+
+# close the database and remove the corresponding local file if clean is True
+def close_db(app, clean=True, e=None):
+    db = flask.g.pop('db', None)
+
+    if db is not None:
+        db.close()
+        if clean:
+            os.remove(app.config["DATABASE"])
+
+# create a sql database from a csv file
+# returns the number of entries
+def csv_to_sql(in_file, delim=';'):
+    with open (in_file, 'r') as f:
+        reader = csv.reader(f, delimiter=delim)
+        # get columns names
+        columns = next(reader)
+        columns_header = ','.join(columns)
+        # query template
+        query = "INSERT INTO {0}({1}) VALUES ({2})"
+        query = query.format(SQL_TABLE_NAME, columns_header, ','.join('?' * len(columns)))
+        # create table
+        db = init_db(app, columns_header)
+        cursor = db.cursor()
+
+        # feed data
+        for data in reader:
+            cursor.execute(query, data)
+        db.commit()
+
+# sql to csv, overwrite existing files
+def sql_to_csv(out_file, delim=';'):
+    db = get_db(app)
+    cursor = db.cursor()
+    # get column names
+    cursor.execute(f"SELECT * FROM {SQL_TABLE_NAME} LIMIT 0")
+    columns = [note[0] for note in cursor.description[1:]]
+    # get data rows
+    cursor.execute(f"SELECT * FROM {SQL_TABLE_NAME}")
+    rows = cursor.fetchall()
+    # overwrite file if it exists already
+    with open(out_file, 'w+') as f:
+        writer = csv.writer(f, delimiter=delim)
+        # write column header
+        writer.writerow(columns)
+        # feed data
+        for data in rows:
+            writer.writerow(data[1:])
+
+## Routes ## ---
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        password = request.form['password']
-        try:
-            download_encrypted_db()
-            success, msg = decrypt_gpg_file(LOCAL_GPG_PATH, LOCAL_DB_PATH, password)
-            if not success:
-                raise Exception(msg)
-            session['authenticated'] = True
-            session['passphrase'] = password
-            return redirect('/home')
-        except Exception as e:
-            return f"<h2>Error: {str(e)}</h2><a href='/'>Try again</a>"
-    return render_template('index.html')
-    # return '''
-    #     <form method="post">
-    #         <h2>Enter password to decrypt DB</h2>
-    #         <input type="password" name="password" required>
-    #         <input type="submit" value="Login">
-    #     </form>
-    # '''
+    # Simple page rendering
+    if flask.request.method == "GET":
+        # Decrypted file
+        if not app.config["SOURCE_FILE"][1]:
+            return flask.redirect("/home")
+        else:
+            return flask.render_template('index.html')
 
+    # POST request, here password form submitted
+    if flask.request.method == "POST":
+        # get password
+        password = flask.request.form['password']
+        print(password)
+        # flask.flash("test", "error")
+        try:
+            decrypt_AES256(app.config["SOURCE_FILE"][0], app.config["LOCAL_CSV_FILE"], password)
+            # init and feed sql database from csv file
+            csv_to_sql(app.config["LOCAL_CSV_FILE"])
+        except UnicodeDecodeError as e:
+            print("Wrong password")
+            flask.flash("Wrong password")
+            return flask.redirect('/')
+        except Exception as e:
+            print("\033[1;31m" + "Error:")
+            print(e, "\033[0m")
+            return f"<h2>Error: {str(e)}</h2><a href='/'>Try again</a>"
+
+        # if decryption succeded, we consider the user authenticated
+        flask.session['authenticated'] = True
+        # we store the password
+        flask.session['passphrase'] = password
+
+
+        return flask.redirect('/home')
+
+    # Should never happen if Flask does its job
+    else:
+        return "Method Not Allowed", 405
+
+@app.route("/categories")
+def get_categories():
+    db = get_db(app)
+    cursor = db.cursor()
+    # get column names
+    cursor.execute(f"SELECT DISTINCT category FROM {SQL_TABLE_NAME}")
+    categories = cursor.fetchall()
+    return flask.jsonify(categories)
 
 @app.route('/save')
 def save():
-    if not session.get('authenticated'):
-        return redirect('/')
-    
-    password = session.get('passphrase')
-    if password:
-        try:
-            upload_encrypted_db(password)
-        except Exception as e:
-            
-            return f"<h3>Upload failed: {e}</h3><a href='/home'>Back</a>", 500
-    return redirect('/home')
+    if not flask.session.get('authenticated'):
+        print("not authenticated")
+        return flask.redirect('/')
+
+    # source file not encrypted, simply save it
+    if not app.config["SOURCE_FILE"][1]:
+        # update csv source file
+        sql_to_csv(app.config["SOURCE_FILE"][0])
+
+    # source file encrypted
+    else:
+        password = flask.session.get('passphrase')
+        if not password:
+            flask.flash("No password stored, aborting save.")
+            return flask.redirect("/home")
+        else:
+            try:
+                # update csv file
+                sql_to_csv(app.config["LOCAL_CSV_FILE"])
+                # update encrypted file
+                encrypt_AES256(app.config["LOCAL_CSV_FILE"],
+                               app.config["SOURCE_FILE"][0],
+                               password)
+
+                # remote source file
+                if app.config["SOURCE_FILE"][2]:
+                    # replace the most recent file in the drive folder
+                    service = get_drive_service(TOKEN_PATH, CREDENTIALS_PATH, SCOPES, 8080)
+                    file_id = get_most_recent_file_in_folder(service, DRIVE_FOLDER_ID)["id"]
+                    upload_drive_file(service, app.config["SOURCE_FILE"][0], file_id)
+
+            except Exception as e:
+                print("Save error:", e)
+                return f"<h3>Upload failed: {e}</h3><a href='/home'>Back</a>", 500
+
+    return flask.redirect('/home')
 
 @app.route('/local_copy')
 def local_copy():
-    if not session.get('authenticated'):
-        return redirect('/')
+    if not flask.session.get('authenticated'):
+        print("not authenticated")
+        return flask.redirect('/')
 
-    password = session.get('passphrase')
+    password = flask.session.get('passphrase')
     if not password:
-        return "<h3>Missing passphrase</h3>", 400
+        flask.flash("No password stored, aborting local save.")
+        return flask.redirect("/home")
+        # return "<h3>Missing passphrase</h3>", 400
 
-    if not os.path.exists(LOCAL_DB_PATH):
-        return "<h3>No decrypted DB available</h3>", 404
+    if not os.path.exists(app.config["DATABASE"]):
+        flask.flash("No decrypted database available, aborting local save.")
+        return flask.redirect("/home")
+        # return "<h3>No decrypted DB available</h3>", 404
 
-    backup_path = LOCAL_BACKUP_DIR + "expenses_" + datetime.now().strftime("%Y%m%d_%H%M%S.db.gpg")
-    # Encrypt the DB file using subprocess
+    backup_file = LOCAL_BACKUP_DIR + "expenses_" + datetime.now().strftime("%Y%m%d_%H%M%S.csv.enc")
     try:
-        subprocess.run([
-            'gpg', '--batch', '--yes',
-            '--passphrase', password,
-            '--pinentry-mode', 'loopback',
-            '-c', '-o', backup_path, LOCAL_DB_PATH
-        ], check=True)
-    except subprocess.CalledProcessError as e:
-        return f"<h3>Encryption failed: {e}</h3>", 500
 
-    # return send_file(
-    #     LOCAL_BACKUP_PATH,
-    #     as_attachment=True,
-    #     download_name='data.db.gpg',
-    #     mimetype='application/octet-stream'
-    # )
-    return redirect('/home')
-    
+        # get local csv file
+        csv_file = ""
+        if not app.config["SOURCE_FILE"][1]:
+            csv_file = app.config["SOURCE_FILE"][0]
+        else:
+            csv_file = app.config["LOCAL_CSV_FILE"]
+
+        # update csv file
+        sql_to_csv(csv_file)
+        # Encrypt the csv file
+        encrypt_AES256(csv_file, backup_file, password)
+    except CalledProcessError as e:
+        return f"<h3>Local save failed: {e}</h3>", 500
+
+    flask.flash(f"Local save available at :\n{backup_file}")
+    return flask.redirect('/home')
+
 @app.route('/logout')
 def logout():
     save()
 
-    session.clear()
-    if os.path.exists(LOCAL_DB_PATH):
-        os.remove(LOCAL_DB_PATH)
-    if os.path.exists(LOCAL_GPG_PATH):
-        os.remove(LOCAL_GPG_PATH)
-    return redirect('/')
+    flask.session.clear()
+    # the source file was encrypted, remove decrypted file
+    if app.config["SOURCE_FILE"][1]:
+        os.remove(app.config["LOCAL_CSV_FILE"])
+    # the source file was downloaded from remote, remove local copy
+    if app.config["SOURCE_FILE"][2]:
+        os.remove(app.config["SOURCE_FILE"][0])
+    # close sql database and remove local sql database
+    close_db(app, clean=True)
+    return flask.redirect('/')
 
 @app.route('/home')
 def home():
-    if not session.get('authenticated'):
-        return redirect('/')
-    return render_template('home.html')
+    if not flask.session.get('authenticated'):
+        return flask.redirect('/')
+    return flask.render_template('home.html')
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    if not session.get('authenticated'):
-        return redirect('/')
-    date        = request.form['date']
-    amount      = request.form['amount']
-    description = request.form['description']
-    category    = request.form['category']
+    if not flask.session.get('authenticated'):
+        return flask.redirect('/')
+    date     = flask.request.form['date']
+    amount   = flask.request.form['amount']
+    note     = flask.request.form['note']
+    category = flask.request.form['category']
+    account  = "Main Account" # TODO: create form
 
+    # amount checking
     try:
         amount = float(amount)
         if math.isnan(amount) or math.isinf(amount):
             raise ValueError
     except ValueError:
-        return 'Error: Invalid price', 400
+        flask.flash("Error: Invalid price")
+        return flask.redirect("/home")
+        # return 'Error: Invalid price', 400
 
-    conn = sqlite3.connect(LOCAL_DB_PATH)
-    c = conn.cursor()
-    c.execute("INSERT INTO entries (date, amount, description, category) VALUES (?, ?, ?, ?)",
-              (date, amount, description, category))
-    conn.commit()
-    conn.close()
+    db = get_db(app)
+    db.cursor().execute(f"INSERT INTO {SQL_TABLE_NAME} (date, amount, note, category, account) VALUES (?, ?, ?, ?, ?)",
+                        (date, amount, note, category, account))
+    db.commit()
     return 'OK'
 
 @app.route('/entries')
 def entries():
-    if not session.get('authenticated'):
-        return redirect('/')
-    conn = sqlite3.connect(LOCAL_DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id, date, amount, description, category FROM entries")
+    if not flask.session.get('authenticated'):
+        return flask.redirect('/')
+    db = get_db(app)
+    c = db.cursor()
+    c.execute(f"SELECT id, date, amount, note, category FROM {SQL_TABLE_NAME}")
     data = c.fetchall()
-    conn.close()
-    return jsonify(data)
+    return flask.jsonify(data)
 
 @app.route('/update/<int:entry_id>', methods=['POST'])
 def update_entry(entry_id):
-    if not session.get('authenticated'):
-        return redirect('/')
-    if not request.is_json:
+    if not flask.session.get('authenticated'):
+        return flask.redirect('/')
+    if not flask.request.is_json:
         return "Invalid format", 400
-    data = request.get_json()
+    data = flask.request.get_json()
     date = data.get("date")
     amount = data.get("amount")
-    description = data.get("description")
+    note = data.get("note")
     category = data.get("category")
 
+    # amount checking and conversion
     try:
         amount = float(amount)
         if math.isnan(amount) or math.isinf(amount):
@@ -253,39 +502,124 @@ def update_entry(entry_id):
     except ValueError:
         return "Invalid amount", 400
 
-    conn = sqlite3.connect(LOCAL_DB_PATH)
-    c = conn.cursor()
-    c.execute("""
-        UPDATE entries
-        SET date = ?, amount = ?, description = ?, category = ?
+    db = get_db(app)
+    db.cursor().execute("""
+        UPDATE {0}
+        SET date = ?, amount = ?, note = ?, category = ?
         WHERE id = ?
-    """, (date, amount, description, category, entry_id))
-    conn.commit()
-    conn.close()
+    """.format(SQL_TABLE_NAME), (date, amount, note, category, entry_id))
+    db.commit()
 
     return "OK"
 
 @app.route('/delete/<int:entry_id>', methods=['DELETE'])
 def delete_entry(entry_id):
-    if not session.get('authenticated'):
-        return redirect('/')
-    conn = sqlite3.connect(LOCAL_DB_PATH)
-    c = conn.cursor()
-    c.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
-    conn.commit()
-    conn.close()
+    print("delete called")
+    if not flask.session.get('authenticated'):
+        return 'not authenticated', 400
+    db = get_db(app)
+    request = "DELETE FROM {} WHERE id = {}".format(SQL_TABLE_NAME, entry_id)
+    print(request)
+    db.cursor().execute(request)
+    db.commit()
     return 'OK'
 
 @app.route('/hist_data')
 def data():
-    if not session.get('authenticated'):
-        return redirect('/')
-    conn = sqlite3.connect(LOCAL_DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT date, amount, category FROM entries")
+    if not flask.session.get('authenticated'):
+        return flask.redirect('/')
+    db = get_db(app)
+    c = db.cursor()
+    c.execute(f"SELECT date, amount, category FROM {SQL_TABLE_NAME}")
     rows = c.fetchall()
-    conn.close()
-    return jsonify([{"date": row[0], "amount": row[1], "category": row[2]} for row in rows])
+    return flask.jsonify([{"date": row[0], "amount": row[1], "category": row[2]} for row in rows])
+
+# App interface ---
+
+# Display usage for app
+def print_usage():
+    print(f"Usage: python {sys.argv[0]} <filepath>\n" \
+           "\t<filepath>: Optional, path towards a csv file.\n" \
+           "\t\t The file extension must be `csv` or `csv.enc`.")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    nb_args = len(sys.argv)
+
+     # local file as database source
+    if nb_args == 2:
+        src_file = sys.argv[1]
+        file_split = os.path.splitext(src_file)
+        # normal csv file
+        if file_split[1] == ".csv":
+            app.config["SOURCE_FILE"] = (src_file, False, False)
+        # possibly encrypted csv file
+        elif file_split[1] == ".enc":
+            if os.path.splitext(file_split[0])[1] == ".csv":
+                app.config["SOURCE_FILE"] = (src_file, True, False)
+                app.config["LOCAL_CSV_FILE"] = LOCAL_CSV_FILE
+
+        # launch main app
+        app.run(debug=True)
+
+    # source file to dl from drive, encrypted
+    elif nb_args == 1:
+        try:
+            # connection to drive service
+            service = get_drive_service(TOKEN_PATH, CREDENTIALS_PATH, SCOPES, 8080)
+            # download most recent file (encrypted csv)
+            db_file_id = get_most_recent_file_in_folder(service, DRIVE_FOLDER_ID)["id"]
+            download_drive_file(service, db_file_id, LOCAL_ENC_FILE)
+            # update app config
+            app.config["SOURCE_FILE"] = (LOCAL_ENC_FILE, True, True)
+            app.config["LOCAL_CSV_FILE"] = LOCAL_CSV_FILE
+        except Exception as e:
+            print("Error: ", e)
+            quit()
+
+        # launch main app
+        app.run(debug=True)
+
+    # incorrect number of arguments
+    else:
+        print_usage()
+        quit()
+
+
+
+    # with app.app_context():
+        # service = get_drive_service(TOKEN_PATH, CREDENTIALS_PATH, SCOPES, 8080)
+    #     db_file_id = get_most_recent_file_in_folder(service, DRIVE_FOLDER_ID)["id"]
+    #     # db_file_id = DRIVE_GPG_FILE_ID
+    #     download_drive_file(service, db_file_id, LOCAL_ENC_FILE)
+    #     # success, msg = decrypt_gpg_file(LOCAL_GPG_PATH, LOCAL_DB_PATH, password)
+    #     decrypt_AES256(LOCAL_ENC_FILE, LOCAL_CSV_FILE, password)
+    #     # init and feed sql database from csv file
+    #     csv_to_sql(LOCAL_CSV_FILE)
+
+    #     # update csv file
+    #     sql_to_csv(LOCAL_CSV_FILE)
+    #     # update encrypted file
+    #     encrypt_AES256(LOCAL_CSV_FILE, LOCAL_ENC_FILE, password)
+    #     # replace the most recent file in save folder
+    #     file_id = get_most_recent_file_in_folder(service, DRIVE_FOLDER_ID)["id"]
+    #     print("upload file: ", file_id);
+    #     upload_drive_file(service, LOCAL_ENC_FILE, file_id)
+
+        # save()
+    #     service = get_drive_service(TOKEN_PATH, CREDENTIALS_PATH, SCOPES, 8080)
+    #     db_file_id = get_most_recent_file_in_folder(service, DRIVE_FOLDER_ID)["id"]
+    #     # db_file_id = DRIVE_GPG_FILE_ID
+    #     download_drive_file(service, db_file_id, LOCAL_ENC_FILE)
+    #     # success, msg = decrypt_gpg_file(LOCAL_GPG_PATH, LOCAL_DB_PATH, password)
+    #     decrypt_AES256(LOCAL_ENC_FILE, LOCAL_CSV_FILE, password)
+    #     # init and feed sql database from csv file
+    #     csv_to_sql(LOCAL_CSV_FILE)
+
+        # csv_to_sql("./b.test")
+        # sql_to_csv("./c.test")
+        # close_db(app)
+
+
+    # download_encrypted_db()
+    # get_drive_service()
+    # print(get_most_recent_file_in_folder(get_drive_service(TOKEN_PATH, CREDENTIALS_PATH, SCOPES, 8080), DRIVE_FOLDER_ID)["id"])

@@ -1,5 +1,7 @@
 .**
 !.gitignore
+__pycache__/**
+
 data.db.gpg
 
 user_config/**
