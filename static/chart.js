@@ -49,19 +49,6 @@ async function fetchOptions(columnName) {
 }
 
 
-// initiate categories
-// function generateCategoryCSS() {
-//     // get every category
-//     return Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => {
-//         return `.cat-${key} {
-//       background-color: ${cfg.color};
-//       color: #333;
-//       font-weight: bold;
-//       text-align: center;
-//     }`;
-//     }).join("\n");
-// }
-
 function generateOptionsCss(prefix, optionName) {
     // get every option
     return Object.entries(OPTIONS_CONFIG[optionName]).map(([key, cfg]) => {
@@ -74,15 +61,15 @@ function generateOptionsCss(prefix, optionName) {
     }).join("\n");
 }
 
-function populateOptionDropdownList(optionName) {
-    const select = document.getElementById(optionName);
+function populateOptionDropdownList(selectId, optionName) {
+    const select = document.getElementById(selectId);
 
     // Clear in case it’s re-run
     select.innerHTML = "";
 
-    Object.entries(OPTIONS_CONFIG[optionName]).forEach(([value, config]) => {
+    Object.entries(OPTIONS_CONFIG[optionName]).forEach(([_, config]) => {
         const option = document.createElement("option");
-        option.value = value;
+        option.value = config.label;
         option.textContent = config.label;
         select.appendChild(option);
     });
@@ -327,12 +314,25 @@ async function loadEntryTables() {
     const response = await fetch("/entries");
     const data = await response.json();
 
-    // All entries
-    renderTable("all-entries-table", data);
+    const selectedAccount = stringToKey(document.getElementById("account-filter").value);
 
-    // Filter current month
+    // Apply account filter
+    let filteredData = data;
+
+    if (selectedAccount !== "all") {
+        filteredData = data.filter(row => {
+            const account = row[5]; // account column (id, date, amount, note, category, account)
+            console.log(stringToKey(account), selectedAccount);
+            return stringToKey(account) === selectedAccount;
+        });
+    }
+
+    // All entries table
+    renderTable("all-entries-table", filteredData);
+
+    // Current month table (also filtered)
     const now = new Date();
-    const currentMonthEntries = data.filter(row => {
+    const currentMonthEntries = filteredData.filter(row => {
         const date = new Date(row[1]);
         return (
             date.getFullYear() === now.getFullYear() &&
@@ -474,8 +474,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         generateOptionsCss("acc", "account");
     document.head.appendChild(style);
 
-    populateOptionDropdownList("category"); // fills a dropdown list
-    populateOptionDropdownList("account"); // fills a dropdown list
+    populateOptionDropdownList("category", "category"); // fills a dropdown list
+    populateOptionDropdownList("account", "account"); // fills a dropdown list
+    populateOptionDropdownList("account-filter", "account"); // fills a dropdown list
+    // add no filter entry
+    const select = document.getElementById("account-filter");
+    const option = document.createElement("option");
+    option.value = "all";
+    option.textContent = "all";
+    option.selected = true;
+    select.appendChild(option);
 
     document.getElementById("save-form").addEventListener("submit", async (e) => {
         e.preventDefault(); // prevent page reload
@@ -562,7 +570,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         OPTIONS_CONFIG["category"][key] = { label: newOpt, color };
 
         // Update the dropdown
-        populateOptionDropdownList("category");
+        populateOptionDropdownList("category", "category");
 
         // Regenerate dynamic CSS for tables
         const style = document.querySelector("#dynamic-category-style");
@@ -588,7 +596,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         OPTIONS_CONFIG["account"][key] = { label: newOpt, color };
 
         // Update the dropdown
-        populateOptionDropdownList("account");
+        populateOptionDropdownList("account", "account");
+        populateOptionDropdownList("account-filter", "account");
+        // add no filter entry
+        const select = document.getElementById("account-filter");
+        const option = document.createElement("option");
+        option.value = "all";
+        option.textContent = "all";
+        option.selected = true;
+        select.appendChild(option);
 
         // Regenerate dynamic CSS for tables
         const style = document.querySelector("#dynamic-account-style");
@@ -597,6 +613,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         newStyle.id = "dynamic-account-style";
         newStyle.innerHTML = generateOptionsCss("acc", "account");
         document.head.appendChild(newStyle);
+    });
+
+    document.getElementById("account-filter").addEventListener("change", () => {
+        loadEntryTables();
     });
 
     // Initial table/chart load

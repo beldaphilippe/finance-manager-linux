@@ -102,14 +102,30 @@ canvas {
   /* z-index: 1000; */
 
   background: var(--base01);
-  padding: 12px 20px 0px;
+  /* padding: 12px 20px 0px; */
+
   border: 1px solid var(--base02);
   border-radius: 5px;
+}
+
+#top-bar-first-row {
+  padding: 12px 20px 0px;
 
   display: flex;
   justify-content: space-between; /* left + right */
-  /* align-items: center;           /\* vertical alignment *\/ */
-  /* border-bottom: 1px solid #333; */
+  background: var(--base01);
+}
+
+#top-bar-second-row {
+  padding: 0px 20px 12px;
+  display: flex;
+  gap: 1rem;
+
+  background: var(--base01);
+}
+
+#top-bar-second-row label {
+    background: inherit;
 }
 
 #save-form {
@@ -212,6 +228,7 @@ canvas {
     background-color: var(--base01) ;
 
     padding: 0.5rem;
+    margin-bottom: 20px;
     border-radius: 10px;
 }
 

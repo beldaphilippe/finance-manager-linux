@@ -8,7 +8,6 @@ import sys
 from io import FileIO
 from subprocess import run, CalledProcessError
 import math
-import time
 from datetime import datetime
 import logging
 

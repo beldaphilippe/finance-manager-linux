@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
 <!-- usage: run 'python app.py' in a terminal and go to http://localhost:5000/ -->
-<!-- TODO:
-  -->
 
 <head>
   <meta charset="UTF-8">
@@ -15,22 +13,30 @@
 <body>
 
   <div id="top-bar">
-    <form id="save-form">
-      <button id="save" type="submit">Sauvegarder</button>
-      <button id="logout" type="submit">Sauvegarder et quitter</button>
-      <button id="quit" type="submit">Quitter</button>
-      <button id="local_copy" type="submit">Copie locale</button>
-    </form>
+    <div id="top-bar-first-row">
+      <form id="save-form">
+        <button id="save" type="submit">Sauvegarder</button>
+        <button id="logout" type="submit">Sauvegarder et quitter</button>
+        <button id="quit" type="submit">Quitter</button>
+        <button id="local_copy" type="submit">Copie locale</button>
+      </form>
 
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <div id="flashed-messages">
-      {% for msg in messages %}
-      <p>{{ msg }}</p>
-      {% endfor %}
+      {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <div id="flashed-messages">
+        {% for msg in messages %}
+        <p>{{ msg }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
     </div>
-    {% endif %}
-    {% endwith %}
+
+    <div id="top-bar-second-row">
+      <label>Filtrer selon compte: </label>
+      <select id="account-filter"></select>
+    </div>
+
   </div>
 
   <h1>Comptes</h1>
