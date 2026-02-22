@@ -6,43 +6,34 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Expenses</title>
+  <title>Finance Manager</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='home-style.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
   <script src="/static/chart-lib.js"></script>
 </head>
 
 <body>
-  <form id="action-form">
-    <button id="save" type="submit">Sauvegarder</button>
-    <button id="logout" type="submit">Sauvegarder et quitter</button>
-    <button id="local_copy" type="submit">Copie locale</button>
-  </form>
-  
-  <!-- <div id="options-form"> -->
-  <!--     <form action="{{ url_for('save') }}"> -->
-  <!--       <button type="submit">Sauvegarder</button> -->
-  <!--     </form> -->
 
-  <!--     <form action="{{ url_for('logout') }}"> -->
-  <!--       <button type="submit">Sauvegarder et quitter</button> -->
-  <!--     </form> -->
+  <div id="top-bar">
+    <form id="save-form">
+      <button id="save" type="submit">Sauvegarder</button>
+      <button id="logout" type="submit">Sauvegarder et quitter</button>
+      <button id="quit" type="submit">Quitter</button>
+      <button id="local_copy" type="submit">Copie locale</button>
+    </form>
 
-  <!--     <form action="{{ url_for('local_copy') }}"> -->
-  <!--       <button type="submit">Copie locale</button> -->
-  <!--     </form> -->
-  <!-- </div> -->
-  
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div id="flashed-messages">
+      {% for msg in messages %}
+      <p>{{ msg }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+  </div>
+
   <h1>Comptes</h1>
-  
-    <!-- </div> -->
-
-  <!--   <div> -->
-  <!--     <form action="{{ url_for('logout') }}" method="post"> -->
-  <!--       <button type="submit">Quit and encrypt database</button> -->
-  <!--     </form> -->
-  <!--   </div> -->
-  <!-- </div> -->
 
   <form id="entry-form">
     <div>
@@ -51,7 +42,6 @@
       <script>
         document.getElementById("date").value = new Date().toISOString().substring(0, 10);
       </script>
-
     </div>
 
     <div>
@@ -67,6 +57,13 @@
     <div>
       <label for="category">Catégorie :</label>
       <select id="category" name="category"></select>
+      <button id="add-category" type="button">Nouvelle catégorie</button>
+    </div>
+
+    <div>
+      <label for="account">Compte :</label>
+      <select id="account" name="account"></select>
+      <button id="add-account" type="button">Nouveau compte</button>
     </div>
 
     <div>
@@ -74,6 +71,7 @@
       <button type="submit">Nouvelle Entrée</button>
     </div>
   </form>
+
 
   <div class="table-row">
     <div class="table-box">
@@ -85,6 +83,7 @@
             <th>Prix</th>
             <th>Description</th>
             <th>Catégorie</th>
+            <th>Compte</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -95,8 +94,8 @@
     </div>
 
     <div class="table-box">
+      <h2>Dépenses par mois et catégorie</h2>
       <section class="chart-section">
-        <h2>Dépenses par mois et catégorie</h2>
         <canvas id="moneyChart" width="600" height="300"></canvas>
       </section>
     </div>
@@ -112,6 +111,7 @@
             <th>Prix</th>
             <th>Description</th>
             <th>Catégorie</th>
+            <th>Compte</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -121,7 +121,7 @@
       </table>
     </div>
     
-    <div class="table-box">
+    <div class="table-box" id="monthly-balance">
       <h2>Bilan par mois</h2>
       <table id="monthly-balance-table" class="balance-table" border="1">
         <thead>
@@ -139,6 +139,7 @@
 
 
   <script src="{{ url_for('static', filename='chart.js') }}"></script>
+
 </body>
 
 </html>

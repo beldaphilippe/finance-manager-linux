@@ -1,33 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 
 <head>
-  <title>Login</title>
+  <meta charset="UTF-8">
+  <title>Finance Manager</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='login-style.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 
 <body>
-  <h2>Login</h2>
-  <form method="post" action="{{ url_for('login') }}">
-    <label>Password:</label>
-    <input type="password" name="password">
-    <button type="submit">Login</button>
-  </form>
+  <div id="login-frame">
+    <h3>Login</h3>
+    <form method="post" action="{{ url_for('login') }}">
+      <label>Password:</label>
+      <input type="password" name="password">
+      <button type="submit">Login</button>
+    </form>
 
-{% for message in get_flashed_messages() %}
-  <p style="color:red;">{{ message }}</p>
-{% endfor %}
-  <!-- {% with messages = get_flashed_messages(with_categories=true) %} -->
-  <!-- {% if messages %} -->
-  <!-- {% for category, message in messages %} -->
+    {% for message in get_flashed_messages() %}
+    <p style="color:red;">{{ message }}</p>
+    {% endfor %}
+  </div>
 
-  <!-- {{ message }} -->
-
-  <!-- {% endfor %} -->
-  <!-- {% endif %} -->
-  <!-- {% endwith %} -->
-  <!-- {% if error %} -->
-  <!-- <p style="color: red;">{{ error }}</p> -->
-  <!-- {% endif %} -->
 </body>
 
 </html>

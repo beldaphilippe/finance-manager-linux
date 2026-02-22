@@ -1,7 +1,74 @@
-body {
+/* General colors                   */
+/*     Default background: base00   */
+/*     Alternate background: base01 */
+/*     Selection background: base02 */
+/*     Default text: base05         */
+/*     Alternate text: base04       */
+/*     Warning: base0A              */
+/*     Urgent: base09               */
+/*     Error: base08                */
+
+/* Theme --- */
+/* :root { */
+/*     /\* Backgrounds *\/ */
+/*     --base00: #1e1e1e; /\* main background *\/ */
+/*     --base01: #252526; /\* panels / top bar *\/ */
+/*     --base02: #2d2d2d; /\* selection / hover *\/ */
+
+/*     /\* Text *\/ */
+/*     --base04: #a0a0a0; /\* muted text *\/ */
+/*     --base05: #d4d4d4; /\* normal text *\/ */
+
+/*     /\* Accents *\/ */
+/*     --base08: #f44747; /\* error *\/ */
+/*     --base09: #ff8800; /\* urgent *\/ */
+/*     --base0A: #ffcc00; /\* warning *\/ */
+
+/*     /\* Optional extra Base16 colors (useful later) *\/ */
+/*     --base03: #3c3c3c; */
+/*     --base06: #e0e0e0; */
+/*     --base07: #ffffff; */
+/*     --base0B: #4ec9b0; */
+/*     --base0C: #56b6c2; */
+/*     --base0D: #569cd6; */
+/*     --base0E: #c586c0; */
+/*     --base0F: #d16969; */
+/* } */
+/* Mangrove Theme */
+:root {
+    /* Backgrounds */
+    --base00: #142619; /* main background: dark mangrove soil */
+    --base01: #1f3a2f; /* panels / top bar: deeper foliage */
+    --base02: #2c5244; /* selection / hover: wet roots / highlights */
+
+    /* Text */
+    --base04: #8fa29b; /* muted text: soft leaves */
+    --base05: #cdd7d2; /* normal text: pale green-gray */
+
+    /* Accents */
+    --base08: #e76f51; /* error: reddish-brown mud */
+    --base09: #f4a261; /* urgent: sunlit leaf highlights */
+    --base0A: #e9c46a; /* warning: dried mangrove yellow */
+
+    /* Optional extra Base16 colors (useful later) */
+    --base03: #364d43; /* secondary background: shadowed roots */
+    --base06: #d8e2d3; /* light background / selection text */
+    --base07: #f0f7f2; /* foreground: pale mist / water reflection */
+    --base0B: #2a9d8f; /* info / success: deep green leaf */
+    --base0C: #56b6c2; /* cyan / highlights: water channels */
+    --base0D: #1b6ca8; /* blue / links: sky reflection */
+    --base0E: #9c89b8; /* purple / tags: flowering mangrove buds */
+    --base0F: #d16159; /* orange / flags: sun on mud */
+}
+/* Globals --- */
+* {
+    color: var(--base05);
+    background-color: var(--base00);
     font-family: Arial, sans-serif;
+}
+
+body {
     margin: 2em;
-    background-color: #f9f9f9;
     text-align: center;
 }
 
@@ -9,29 +76,70 @@ form {
     margin-bottom: 2em;
 }
 
-/* options form ===*/
-#options-form {
-    display: flex;
-    gap: 1rem;
-}
-
-/* #options-form > div { */
-/*     display: flex; */
-/*     flex-direction: column; */
-/* } */
-
-
-#options-form button {
+button {
     padding: 0.5em 1em;
     font-size: 1em;
-    background-color: rgba(0,0,0,0.1);
+    background-color: var(--base0D);
     border: none;
-    color: black;
+    color: var(--base01);
+    cursor: pointer;
+    margin-left: 0.5em;
+    border-radius: 5px;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+canvas {
+    background: var(--base01);
+    border: 1px solid var(--base04);
+}
+/* save form --- */
+#top-bar {
+  position: sticky;
+  top: 0;
+  /* z-index: 1000; */
+
+  background: var(--base01);
+  padding: 12px 20px 0px;
+  border: 1px solid var(--base02);
+  border-radius: 5px;
+
+  display: flex;
+  justify-content: space-between; /* left + right */
+  /* align-items: center;           /\* vertical alignment *\/ */
+  /* border-bottom: 1px solid #333; */
+}
+
+#save-form {
+  /* display: flex; */
+  gap: 1rem;
+  background: var(--base01);
+  /* color: var(--base05); */
+  /* background: var(--base01); */
+}
+
+#save-form button {
+    padding: 0.5em 1em;
+    font-size: 1em;
+    color: var(--base05);
+    background-color: rgba(0,0,0,0.1);
+    border: 1px solid var(--base04);
     cursor: pointer;
     margin-left: 0.5em;
 }
 
-/* entry form === */
+#flashed-messages {
+    background-color: var(--base01);
+}
+
+#flashed-messages p {
+    color: green;
+    background-color: inherit;
+}
+
+/* entry form --- */
 #entry-form {
     display: flex;
     gap: 1rem;
@@ -43,10 +151,6 @@ form {
     display: flex;
     flex-direction: column;
     /* width: 150px; /\* same width for all boxes *\/ */
-}
-
-#entry-form button:hover {
-    opacity: 0.8;
 }
 
 #entry-form label {
@@ -61,7 +165,6 @@ form {
   color: red;
   /* border-color: red; */
 }
-
 .input-amount-positive {
   color: green;
   /* border-color: green; */
@@ -74,40 +177,26 @@ form {
 #entry-form input,
 #entry-form select {
     padding: 0.4rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--base04);
     border-radius: 4px;
     font-size: 0.9rem;
 }
 
-/* buttons === */
-button {
-    padding: 0.5em 1em;
-    font-size: 1em;
-    background-color: #5c9ded;
-    border: none;
-    color: white;
-    cursor: pointer;
-    margin-left: 0.5em;
-}
+#add-category,
+#add-account {
+    font-size: 0.9em;
 
-.entries-table button {
-    padding: 0em 0.5em;
-    font-size: 1em;
-    background-color: rgba(0,0,0,0);
-    border: none;
-    color: black;
-    cursor: pointer;
-    margin-left: 0.1em;
+    margin: 10px;
+    padding: 5px;
+
+    color: var(--base05);
+    background-color: var(--base01);
+
+    /* border: 1px solid var(--base04); */
 }
 
 
-/* chart === */
-canvas {
-    background: #f9f9f9;
-    border: 1px solid #ccc;
-}
-
-/* table row === */
+/* table row --- */
 .table-row {
     display: flex;
     gap: 2rem;
@@ -119,7 +208,17 @@ canvas {
     flex: 1;
     min-width: 300px;
     max-width: 100%;
+
+    background-color: var(--base01) ;
+
+    padding: 0.5rem;
+    border-radius: 10px;
 }
+
+.table-box h2 {
+    background-color: inherit;
+}
+
 
 table {
     /* table-layout: fixed; */
@@ -130,7 +229,7 @@ table {
 
 th, td {
     padding: 0.6em 1em;
-    border: 1px solid #ccc;
+    border: 1px solid var(--base04);
     text-align: left;
 }
 
@@ -140,11 +239,11 @@ td button {
     vertical-align: middle;
 }
 
-thead {
-    background-color: #f0f0f0;
-}
+/* thead { */
+/*     background-color: #f0f0f0; */
+/* } */
 
-/* table format === */
+/* table format --- */
 
 
 
@@ -152,7 +251,7 @@ thead {
 .entries-table th:not(:nth-child(5))::after {
     content: " ↕";
     font-size: 1em;
-    color: #888;
+    /* color: var(--base05); */
 }
 
 .editable-cell input,
@@ -190,6 +289,10 @@ thead {
     width: 5em;
 }
 
+.entries-table button {
+    background: rgba(0, 0, 0, 0);
+}
+
 .button-group {
   display: inline-flex;         /* ensures horizontal layout */
   gap: 0.5em;                   /* spacing between buttons */
@@ -207,80 +310,9 @@ thead {
     color: red;
 }
 
-/* Category color styles ===*/
-/* .cat-deplacement { */
-/*     background-color: #d5f5e3; */
-/*     color: #145a32; */
-/*     font-weight: bold; */
-/* } */
+#monthly-balance {
+    padding: 0.5rem;
 
-/* .cat-virement { */
-/*     background-color: #f9e79f; */
-/*     color: #7d6608; */
-/*     font-weight: bold; */
-/* } */
-
-/* .cat-nourriture_colloc { */
-/*     background-color: #d6eaf8; */
-/*     color: #154360; */
-/*     font-weight: bold; */
-/* } */
-
-/* .cat-nourriture_perso { */
-/*     background-color: #f5cba7; */
-/*     color: #6e2c00; */
-/*     font-weight: bold; */
-/* } */
-
-/* .cat-jeux { */
-/*     background-color: #f5b7b1; */
-/*     color: #922b21; */
-/*     font-weight: bold; */
-/* } */
-/* === Category color tags for table cells === */
-
-/* .cat-deplacement { */
-/*   background-color: #A3E4D7;  /\* teal *\/ */
-/* } */
-
-/* .cat-virement { */
-/*   background-color: #F9E79F;  /\* soft yellow *\/ */
-/* } */
-
-/* .cat-nourriture_colloc { */
-/*   background-color: #AED6F1;  /\* light blue *\/ */
-/* } */
-
-/* .cat-nourriture_perso { */
-/*   background-color: #FAD7A0;  /\* orange/gold *\/ */
-/* } */
-
-/* .cat-divers { */
-/*   background-color: #D7DBDD;  /\* light gray *\/ */
-/* } */
-
-/* .cat-jeux { */
-/*   background-color: #F5B7B1;  /\* rose *\/ */
-/* } */
-
-/* .cat-abonnement { */
-/*   background-color: #D2B4DE;  /\* lavender *\/ */
-/* } */
-
-/* .cat-cadeaux { */
-/*   background-color: #F5CBA7;  /\* peach *\/ */
-/* } */
-
-/* /\* Optional: improve contrast *\/ */
-/* .cat-deplacement, */
-/* .cat-virement, */
-/* .cat-nourriture_colloc, */
-/* .cat-nourriture_perso, */
-/* .cat-divers, */
-/* .cat-jeux, */
-/* .cat-abonnement, */
-/* .cat-cadeaux { */
-/*   color: #333; */
-/*   font-weight: bold; */
-/*   text-align: center; */
-/* } */
+    border-radius: 10px;
+    box-shadow: 10px 10px;
+}

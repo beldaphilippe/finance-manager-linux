@@ -1,0 +1,36 @@
+/* ====== Page Background ====== */
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    margin: 0;
+
+    background: url("/static/money_wallpaper.jpg") no-repeat center center fixed;
+    background-size: cover;
+
+    min-height: 100vh;
+}
+
+/* dark overlay for readability */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5); /* adjust darkness */
+    z-index: -1;
+}
+
+#login-frame {
+
+    font-size: 18pt;
+    font-family: Arial, sans-serif;
+    color: black;
+    background-color: #4ec9b0;
+
+    display: inline-block; /* only as wide as content */
+    padding: 0px 20px 12px;     /* optional spacing around text */
+    border-radius: 5px;    /* optional styling */
+    box-shadow: 10px 10px;
+}

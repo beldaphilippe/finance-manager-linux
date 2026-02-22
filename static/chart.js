@@ -1,6 +1,6 @@
 // global var to store categories and associated colors
 // initialized in generateCategoryCSS
-const CATEGORY_CONFIG = {};
+const OPTIONS_CONFIG = {};
 
 // array of colors associated to categories
 const COLORS = [
@@ -16,7 +16,7 @@ const COLORS = [
     "#00B894"
 ];
 
-function categoryToKey(label) {
+function stringToKey(label) {
     if (Array.isArray(label) && label.length === 1) {
         label = label[0];
     }
@@ -32,26 +32,40 @@ function categoryToKey(label) {
         .replace(/^-|-$/g, "");
 }
 
-async function initCategories() {
+async function fetchOptions(columnName) {
     // get every category
-    const response = await fetch("/categories");
-    const categories = await response.json();
+    const response = await fetch("/get_options/" + columnName);
+    const data = await response.json();
+    const tmpDic = {}
 
-    categories.forEach((label, index) => {
+    data.forEach((label, index) => {
         const color = COLORS[index % COLORS.length];
         label = label[0]
-        key = categoryToKey(label)
+        const key = stringToKey(label)
 
-        CATEGORY_CONFIG[key] = { label, color };
+        tmpDic[key] = { label, color };
     });
+    OPTIONS_CONFIG[columnName] = tmpDic;
 }
 
 
 // initiate categories
-function generateCategoryCSS() {
-    // get every category
-    return Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => {
-        return `.cat-${key} {
+// function generateCategoryCSS() {
+//     // get every category
+//     return Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => {
+//         return `.cat-${key} {
+//       background-color: ${cfg.color};
+//       color: #333;
+//       font-weight: bold;
+//       text-align: center;
+//     }`;
+//     }).join("\n");
+// }
+
+function generateOptionsCss(prefix, optionName) {
+    // get every option
+    return Object.entries(OPTIONS_CONFIG[optionName]).map(([key, cfg]) => {
+        return `.${prefix}-${key} {
       background-color: ${cfg.color};
       color: #333;
       font-weight: bold;
@@ -60,13 +74,13 @@ function generateCategoryCSS() {
     }).join("\n");
 }
 
-function populateCategorySelect() {
-    const select = document.getElementById("category");
+function populateOptionDropdownList(optionName) {
+    const select = document.getElementById(optionName);
 
     // Clear in case it’s re-run
     select.innerHTML = "";
 
-    Object.entries(CATEGORY_CONFIG).forEach(([value, config]) => {
+    Object.entries(OPTIONS_CONFIG[optionName]).forEach(([value, config]) => {
         const option = document.createElement("option");
         option.value = value;
         option.textContent = config.label;
@@ -74,8 +88,8 @@ function populateCategorySelect() {
     });
 }
 
-function getCategoryColor(category) {
-    return CATEGORY_CONFIG[category]?.color || "#bbb";
+function getOptionColor(option, element) {
+    return OPTIONS_CONFIG[option][element]?.color || "#bbb";
 }
 
 function makeTableSortable(tableId) {
@@ -139,10 +153,15 @@ function renderTable(tableId, rows, options = {}) {
                     value < 0 ? "amount-negative" : "amount-positive"
                 );
             } else if (index === 3 && cell) { // Categories
-                const key = categoryToKey(cell);
+                const key = stringToKey(cell);
 
-                td.textContent = CATEGORY_CONFIG[key].label || cell;
+                td.textContent = OPTIONS_CONFIG["category"][key].label || cell;
                 td.classList.add(`cat-${key}`);
+            } else if (index === 4 && cell) { // Accounts
+                const key = stringToKey(cell);
+
+                td.textContent = OPTIONS_CONFIG["account"][key].label || cell;
+                td.classList.add(`acc-${key}`);
             } else {
                 td.textContent = cell;
             }
@@ -238,11 +257,11 @@ async function loadChartData() {
     );
 
     const datasets = categories.map(category => {
-        const key = categoryToKey(category);
+        const key = stringToKey(category);
         return {
-            label: CATEGORY_CONFIG[key].label || category,
+            label: OPTIONS_CONFIG["category"][key].label || category,
             data: months.map(month => monthlyCategoryTotals[month][category] || 0),
-            backgroundColor: getCategoryColor(category),
+            backgroundColor: getOptionColor("category", category),
         };
     });
 
@@ -334,10 +353,9 @@ async function deleteEntry(id) {
         method: "DELETE",
     });
 
-    console.log(response);
     if (!response.ok) {
         console.log("Suppression error: ", response);
-        alert("Erreur lors de la suppression.");
+        // alert("Erreur lors de la suppression.");
         return;
     }
 
@@ -349,7 +367,7 @@ async function deleteEntry(id) {
 function startEditEntry(id, fields, rowElement) {
     rowElement.innerHTML = ""; // clear current row
 
-    const [date, amount, note, category] = fields;
+    const [date, amount, note, category, account] = fields;
 
     // Create editable inputs
     const dateInput = document.createElement("input");
@@ -366,16 +384,29 @@ function startEditEntry(id, fields, rowElement) {
     descInput.value = note;
 
     const categorySelect = document.createElement("select");
-    for (const [val, config] of Object.entries(CATEGORY_CONFIG)) {
+    for (const [val, config] of Object.entries(OPTIONS_CONFIG["category"])) {
         const option = document.createElement("option");
         option.value = val;
         option.textContent = config.label;
-        if (val === category) option.selected = true;
+        if (val === category) {
+            option.selected = true;
+        }
         categorySelect.appendChild(option);
     }
 
+    const accountSelect = document.createElement("select");
+    for (const [val, config] of Object.entries(OPTIONS_CONFIG["account"])) {
+        const option = document.createElement("option");
+        option.value = val;
+        option.textContent = config.label;
+        if (val === account) {
+            option.selected = true;
+        }
+        accountSelect.appendChild(option);
+    }
+
     // Append inputs
-    [dateInput, amountInput, descInput, categorySelect].forEach(el => {
+    [dateInput, amountInput, descInput, categorySelect, accountSelect].forEach(el => {
         const td = document.createElement("td");
         td.appendChild(el);
         td.classList.add("editable-cell");
@@ -394,7 +425,8 @@ function startEditEntry(id, fields, rowElement) {
             date: dateInput.value,
             amount: amountInput.value,
             note: descInput.value,
-            category: categorySelect.value
+            category: categorySelect.value,
+            account: accountSelect.value
         });
     };
     buttonGroup.appendChild(saveBtn);
@@ -419,7 +451,7 @@ async function saveEditEntry(id, updatedEntry) {
     });
 
     if (!response.ok) {
-        alert("Erreur lors de la mise à jour.");
+        // alert("Erreur lors de la mise à jour.");
         return;
     }
 
@@ -433,15 +465,19 @@ let warnOnExit = true;
 
 document.addEventListener("DOMContentLoaded", async () => {
     // retrieve all available categories in <CATEGORY_CONFIG>
-    await initCategories();
+    await fetchOptions("category");
+    await fetchOptions("account");
     // Inject dynamic CSS for categories
     const style = document.createElement("style");
-    style.innerHTML = generateCategoryCSS();
+    style.innerHTML =
+        generateOptionsCss("cat", "category") +
+        generateOptionsCss("acc", "account");
     document.head.appendChild(style);
 
-    populateCategorySelect(); // fills a dropdown list
+    populateOptionDropdownList("category"); // fills a dropdown list
+    populateOptionDropdownList("account"); // fills a dropdown list
 
-    document.getElementById("action-form").addEventListener("submit", async (e) => {
+    document.getElementById("save-form").addEventListener("submit", async (e) => {
         e.preventDefault(); // prevent page reload
         
         warnOnExit = false;
@@ -450,17 +486,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         if (button.id === "save") {
             // Call /save
-            await fetch("/save");
+            // await fetch("/save");
+            window.location.href = "/save";
             // alert("Sauvegarde effectuée.");
         } else if (button.id === "logout") {
             // Redirect to /logout
-            window.location.href = "/logout";
+            window.location.href = "/logout/1";
         } else if (button.id === "local_copy") {
             // Download local backup
             window.location.href = "/local_copy";
-            alert("Copie locale enregistrée.");
+            // alert("Copie locale enregistrée.");
+        } else if (button.id === "quit") {
+            // Quit without saving
+            window.location.href = "/logout/0";
         }
-        
+
         warnOnExit = true;
     });
     
@@ -506,7 +546,58 @@ document.addEventListener("DOMContentLoaded", async () => {
         loadBalanceTable();
         loadChartData();
     });
-    
+
+    document.getElementById("add-category").addEventListener("click", (e) => {
+        const newOpt = prompt("Nom de la nouvelle catégorie:", "nouvelle catégorie");
+        if (!newOpt) return; // user canceled
+
+        // Generate a key for this category
+        const key = stringToKey(newOpt);
+
+        // Pick a color (cycle through COLORS)
+        const existingKeys = Object.keys(OPTIONS_CONFIG["category"]);
+        const color = COLORS[existingKeys.length % COLORS.length];
+
+        // Add to OPTIONS_CONFIG
+        OPTIONS_CONFIG["category"][key] = { label: newOpt, color };
+
+        // Update the dropdown
+        populateOptionDropdownList("category");
+
+        // Regenerate dynamic CSS for tables
+        const style = document.querySelector("#dynamic-category-style");
+        if (style) style.remove(); // remove old
+        const newStyle = document.createElement("style");
+        newStyle.id = "dynamic-category-style";
+        newStyle.innerHTML = generateOptionsCss("cat", "category");
+        document.head.appendChild(newStyle);
+    });
+
+    document.getElementById("add-account").addEventListener("click", (e) => {
+        const newOpt = prompt("Nom du nouveau compte:", "nouveau compte");
+        if (!newOpt) return; // user canceled
+
+        // Generate a key for this category
+        const key = stringToKey(newOpt);
+
+        // Pick a color (cycle through COLORS)
+        const existingKeys = Object.keys(OPTIONS_CONFIG["account"]);
+        const color = COLORS[existingKeys.length % COLORS.length];
+
+        // Add to OPTIONS_CONFIG
+        OPTIONS_CONFIG["account"][key] = { label: newOpt, color };
+
+        // Update the dropdown
+        populateOptionDropdownList("account");
+
+        // Regenerate dynamic CSS for tables
+        const style = document.querySelector("#dynamic-account-style");
+        if (style) style.remove(); // remove old
+        const newStyle = document.createElement("style");
+        newStyle.id = "dynamic-account-style";
+        newStyle.innerHTML = generateOptionsCss("acc", "account");
+        document.head.appendChild(newStyle);
+    });
 
     // Initial table/chart load
     loadEntryTables();
