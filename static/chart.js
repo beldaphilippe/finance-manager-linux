@@ -38,13 +38,10 @@ async function fetchOptions(columnName) {
     const data = await response.json();
     const tmpDic = {}
 
-
     data.forEach((label, index) => {
         const color = COLORS[index % COLORS.length];
         label = label[0]
-        const key = stringToKey(label)
-
-        tmpDic[key] = { label, color };
+        tmpDic[label] = color;
     });
     OPTIONS_CONFIG[columnName] = tmpDic;
 }
@@ -52,9 +49,9 @@ async function fetchOptions(columnName) {
 
 function generateOptionsCss(prefix, optionName) {
     // get every option
-    return Object.entries(OPTIONS_CONFIG[optionName]).map(([key, cfg]) => {
-        return `.${prefix}-${key} {
-      background-color: ${cfg.color};
+    return Object.entries(OPTIONS_CONFIG[optionName]).map(([label, color]) => {
+        return `.${prefix}-${stringToKey(label)} {
+      background-color: ${color};
       color: #333;
       font-weight: bold;
       text-align: center;
@@ -68,16 +65,12 @@ function populateOptionDropdownList(selectId, optionName) {
     // Clear in case it’s re-run
     select.innerHTML = "";
 
-    Object.entries(OPTIONS_CONFIG[optionName]).forEach(([_, config]) => {
+    Object.entries(OPTIONS_CONFIG[optionName]).forEach(([key, _]) => {
         const option = document.createElement("option");
-        option.value = config.label;
-        option.textContent = config.label;
+        option.value = key;
+        option.textContent = key;
         select.appendChild(option);
     });
-}
-
-function getOptionColor(option, element) {
-    return OPTIONS_CONFIG[option][element]?.color || "#bbb";
 }
 
 function makeTableSortable(tableId) {
@@ -141,15 +134,11 @@ function renderTable(tableId, rows, options = {}) {
                     value < 0 ? "amount-negative" : "amount-positive"
                 );
             } else if (index === 3 && cell) { // Categories
-                const key = stringToKey(cell);
-
-                td.textContent = OPTIONS_CONFIG["category"][key].value || cell;
-                td.classList.add(`cat-${key}`);
+                td.textContent = cell;
+                td.classList.add(`cat-${stringToKey(cell)}`);
             } else if (index === 4 && cell) { // Accounts
-                const key = stringToKey(cell);
-
-                td.textContent = OPTIONS_CONFIG["account"][key].value || cell;
-                td.classList.add(`acc-${key}`);
+                td.textContent = cell;
+                td.classList.add(`acc-${stringToKey(cell)}`);
             } else {
                 td.textContent = cell;
             }
@@ -245,11 +234,10 @@ async function loadChartData() {
     );
 
     const datasets = categories.map(category => {
-        const key = stringToKey(category);
         return {
-            label: OPTIONS_CONFIG["category"][key].label || category,
+            label: category,
             data: months.map(month => monthlyCategoryTotals[month][category] || 0),
-            backgroundColor: getOptionColor("category", category),
+            backgroundColor: OPTIONS_CONFIG["category"][category] || "#bbb",
         };
     });
 
@@ -331,7 +319,7 @@ async function loadEntryTables() {
     const response = await fetch("/entries");
     const data = await response.json();
 
-    const selectedAccount = stringToKey(document.getElementById("account-filter").value);
+    const selectedAccount = document.getElementById("account-filter").value;
 
     // Apply account filter
     let filteredData = data;
@@ -339,8 +327,7 @@ async function loadEntryTables() {
     if (selectedAccount !== "all") {
         filteredData = data.filter(row => {
             const account = row[5]; // account column (id, date, amount, note, category, account)
-            console.log(stringToKey(account), selectedAccount);
-            return stringToKey(account) === selectedAccount;
+            return account === selectedAccount;
         });
     }
 
@@ -404,24 +391,22 @@ function startEditEntry(id, fields, rowElement) {
     descInput.value = note;
 
     const categorySelect = document.createElement("select");
-    for (const [val, config] of Object.entries(OPTIONS_CONFIG["category"])) {
+    for (const [val, _] of Object.entries(OPTIONS_CONFIG["category"])) {
         const option = document.createElement("option");
         option.value = val;
-        option.textContent = config.label;
-        console.log(config.label, category)
-        if (config.label === category) {
+        option.textContent = val;
+        if (val === category) {
             option.selected = true;
         }
         categorySelect.appendChild(option);
     }
 
     const accountSelect = document.createElement("select");
-    for (const [val, config] of Object.entries(OPTIONS_CONFIG["account"])) {
+    for (const [val, _] of Object.entries(OPTIONS_CONFIG["account"])) {
         const option = document.createElement("option");
         option.value = val;
-        option.textContent = config.label;
-        console.log(val, account);
-        if (val === stringToKey(account)) {
+        option.textContent = val;
+        if (val === account) {
             option.selected = true;
         }
         accountSelect.appendChild(option);
@@ -581,15 +566,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const newOpt = prompt("Nom de la nouvelle catégorie:", "nouvelle catégorie");
         if (!newOpt) return; // user canceled
 
-        // Generate a key for this category
-        const key = stringToKey(newOpt);
-
         // Pick a color (cycle through COLORS)
         const existingKeys = Object.keys(OPTIONS_CONFIG["category"]);
         const color = COLORS[existingKeys.length % COLORS.length];
 
         // Add to OPTIONS_CONFIG
-        OPTIONS_CONFIG["category"][key] = { label: newOpt, color };
+        OPTIONS_CONFIG["category"][newOpt] = color;
 
         // Update the dropdown
         populateOptionDropdownList("category", "category");
@@ -607,15 +589,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const newOpt = prompt("Nom du nouveau compte:", "nouveau compte");
         if (!newOpt) return; // user canceled
 
-        // Generate a key for this category
-        const key = stringToKey(newOpt);
-
         // Pick a color (cycle through COLORS)
         const existingKeys = Object.keys(OPTIONS_CONFIG["account"]);
         const color = COLORS[existingKeys.length % COLORS.length];
 
         // Add to OPTIONS_CONFIG
-        OPTIONS_CONFIG["account"][key] = { label: newOpt, color };
+        OPTIONS_CONFIG["account"][newOpt] = color;
 
         // Update the dropdown
         populateOptionDropdownList("account", "account");
