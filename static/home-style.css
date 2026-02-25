@@ -106,8 +106,10 @@ canvas {
     background: var(--base01);
     /* padding: 12px 20px 0px; */
 
-    border: 2px solid var(--base05);
+    border: 3px solid var(--base04);
     border-radius: 10px;
+    /* box-shadow: 5px 5px var(--base05); */
+
 
 }
 
@@ -248,7 +250,6 @@ canvas {
     /* table-layout: fixed; */
     width: 100%;
     border-collapse: collapse;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
     background-color: rgba(0, 0, 0, 0.1);
 }
 
