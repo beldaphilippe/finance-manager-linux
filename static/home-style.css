@@ -35,31 +35,81 @@
 /*     --base0F: #d16969; */
 /* } */
 /* Mangrove Theme */
+/* :root { */
+/*     /\* Backgrounds *\/ */
+/*     --base00: #f4fbf9; /\* main background: very light teal tint *\/ */
+/*     --base01: #e6f5f1; /\* panels / top bar: soft mint *\/ */
+/*     --base02: #d4ece6; /\* selection / hover: gentle aqua highlight *\/ */
+
+/*     /\* Text *\/ */
+/*     --base04: #5f7a74; /\* muted text: desaturated teal-gray *\/ */
+/*     --base05: #2e3f3c; /\* normal text: deep green-gray *\/ */
+
+/*     /\* Accents *\/ */
+/*     --base08: #d64545; /\* error: soft but clear red *\/ */
+/*     --base09: #e67e22; /\* urgent: warm orange *\/ */
+/*     --base0A: #d4a017; /\* warning: golden amber *\/ */
+
+/*     /\* Optional extra Base16 colors (useful later) *\/ */
+/*     --base03: #c2ddd7; /\* secondary background: subtle border tone *\/ */
+/*     --base06: #1f2a28; /\* strong text / headings *\/ */
+/*     --base07: #ffffff; /\* foreground: pure white surfaces *\/ */
+/*     --base0B: #4ec9b0; /\* info / success: primary accent teal *\/ */
+/*     --base0C: #38b2ac; /\* cyan / highlights: cooler teal *\/ */
+/*     --base0D: #2f80ed; /\* blue / links: clean modern blue *\/ */
+/*     --base0E: #8e7cc3; /\* purple / tags: soft lavender *\/ */
+/*     --base0F: #c05621; /\* orange / flags: earthy accent *\/ */
+/* } */
 :root {
     /* Backgrounds */
-    --base00: #142619; /* main background: dark mangrove soil */
-    --base01: #1f3a2f; /* panels / top bar: deeper foliage */
-    --base02: #2c5244; /* selection / hover: wet roots / highlights */
+    --base00: #f7fcfb; /* main background: very light cool mint */
+    --base01: #4ec9b0; /* panels / top bar: primary teal */
+    --base02: #cfeee8; /* selection / hover: soft teal wash */
 
     /* Text */
-    --base04: #8fa29b; /* muted text: soft leaves */
-    --base05: #cdd7d2; /* normal text: pale green-gray */
+    --base04: #5a6e6b; /* muted text: desaturated teal-gray */
+    --base05: #243533; /* normal text: deep green-gray for readability */
 
     /* Accents */
-    --base08: #e76f51; /* error: reddish-brown mud */
-    --base09: #f4a261; /* urgent: sunlit leaf highlights */
-    --base0A: #e9c46a; /* warning: dried mangrove yellow */
+    --base08: #d64545; /* error: clear red */
+    --base09: #e67e22; /* urgent: warm orange */
+    --base0A: #d4a017; /* warning: golden amber */
 
-    /* Optional extra Base16 colors (useful later) */
-    --base03: #364d43; /* secondary background: shadowed roots */
-    --base06: #d8e2d3; /* light background / selection text */
-    --base07: #f0f7f2; /* foreground: pale mist / water reflection */
-    --base0B: #2a9d8f; /* info / success: deep green leaf */
-    --base0C: #56b6c2; /* cyan / highlights: water channels */
-    --base0D: #1b6ca8; /* blue / links: sky reflection */
-    --base0E: #9c89b8; /* purple / tags: flowering mangrove buds */
-    --base0F: #d16159; /* orange / flags: sun on mud */
+    /* Optional extra Base16 colors */
+    --base03: #a6ddd3; /* borders / subtle contrast against base01 */
+    --base06: #182423; /* strong headings */
+    --base07: #ffffff; /* pure white surfaces / cards */
+    --base0B: #2f9e8f; /* success: deeper teal for contrast on light bg */
+    --base0C: #3aa8a0; /* cyan / highlights */
+    --base0D: #2f80ed; /* links: modern blue */
+    --base0E: #8e7cc3; /* purple / tags */
+    --base0F: #c05621; /* flags / secondary accent */
 }
+/* :root { */
+/*     /\* Backgrounds *\/ */
+/*     --base00: #142619; /\* main background: dark mangrove soil *\/ */
+/*     --base01: #1f3a2f; /\* panels / top bar: deeper foliage *\/ */
+/*     --base02: #2c5244; /\* selection / hover: wet roots / highlights *\/ */
+
+/*     /\* Text *\/ */
+/*     --base04: #8fa29b; /\* muted text: soft leaves *\/ */
+/*     --base05: #cdd7d2; /\* normal text: pale green-gray *\/ */
+
+/*     /\* Accents *\/ */
+/*     --base08: #e76f51; /\* error: reddish-brown mud *\/ */
+/*     --base09: #f4a261; /\* urgent: sunlit leaf highlights *\/ */
+/*     --base0A: #e9c46a; /\* warning: dried mangrove yellow *\/ */
+
+/*     /\* Optional extra Base16 colors (useful later) *\/ */
+/*     --base03: #364d43; /\* secondary background: shadowed roots *\/ */
+/*     --base06: #d8e2d3; /\* light background / selection text *\/ */
+/*     --base07: #f0f7f2; /\* foreground: pale mist / water reflection *\/ */
+/*     --base0B: #2a9d8f; /\* info / success: deep green leaf *\/ */
+/*     --base0C: #56b6c2; /\* cyan / highlights: water channels *\/ */
+/*     --base0D: #1b6ca8; /\* blue / links: sky reflection *\/ */
+/*     --base0E: #9c89b8; /\* purple / tags: flowering mangrove buds *\/ */
+/*     --base0F: #d16159; /\* orange / flags: sun on mud *\/ */
+/* } */
 /* Globals --- */
 * {
     color: var(--base05);
@@ -97,31 +147,34 @@ canvas {
 }
 /* save form --- */
 #top-bar {
-  position: sticky;
-  top: 0;
-  /* z-index: 1000; */
+    position: sticky;
+    top: 0;
+    /* z-index: 1000; */
 
-  background: var(--base01);
-  /* padding: 12px 20px 0px; */
+    background: var(--base01);
+    /* padding: 12px 20px 0px; */
 
-  border: 1px solid var(--base02);
-  border-radius: 5px;
+    border: 2px solid var(--base05);
+    border-radius: 10px;
+
 }
 
 #top-bar-first-row {
-  padding: 12px 20px 0px;
+    border-radius: inherit;
+    padding: 12px 20px 0px;
 
-  display: flex;
-  justify-content: space-between; /* left + right */
-  background: var(--base01);
+    display: flex;
+    justify-content: space-between; /* left + right */
+    background: var(--base01);
 }
 
 #top-bar-second-row {
-  padding: 0px 20px 12px;
-  display: flex;
-  gap: 1rem;
+    border-radius: inherit;
+    padding: 0px 20px 12px;
+    display: flex;
+    gap: 1rem;
 
-  background: var(--base01);
+    background: var(--base01);
 }
 
 #top-bar-second-row label {
@@ -129,11 +182,11 @@ canvas {
 }
 
 #save-form {
-  /* display: flex; */
-  gap: 1rem;
-  background: var(--base01);
-  /* color: var(--base05); */
-  /* background: var(--base01); */
+    /* display: flex; */
+    gap: 1rem;
+    background: var(--base01);
+    /* color: var(--base05); */
+    /* background: var(--base01); */
 }
 
 #save-form button {
@@ -178,12 +231,12 @@ canvas {
     width: 6em;
 }
 .input-amount-negative {
-  color: red;
-  /* border-color: red; */
+    color: red;
+    /* border-color: red; */
 }
 .input-amount-positive {
-  color: green;
-  /* border-color: green; */
+    color: green;
+    /* border-color: green; */
 }
 
 #note {
@@ -230,6 +283,8 @@ canvas {
     padding: 0.5rem;
     margin-bottom: 20px;
     border-radius: 10px;
+
+    box-shadow: 10px 10px var(--base05);
 }
 
 .table-box h2 {
@@ -237,11 +292,16 @@ canvas {
 }
 
 
-table {
+.table-box table {
     /* table-layout: fixed; */
     width: 100%;
     border-collapse: collapse;
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.table-box * {
+    background-color: rgba(0, 0, 0, 0);
 }
 
 th, td {
@@ -273,10 +333,10 @@ td button {
 
 .editable-cell input,
 .editable-cell select {
-  width: 100%;
-  /* box-sizing: border-box; */
-  font: inherit; /* match table cell font */
-  padding: 0.2em;
+    width: 100%;
+    /* box-sizing: border-box; */
+    font: inherit; /* match table cell font */
+    padding: 0.2em;
 }
 
 /* amount */
@@ -311,25 +371,18 @@ td button {
 }
 
 .button-group {
-  display: inline-flex;         /* ensures horizontal layout */
-  gap: 0.5em;                   /* spacing between buttons */
-  align-items: center;
+    display: inline-flex;         /* ensures horizontal layout */
+    gap: 0.5em;                   /* spacing between buttons */
+    align-items: center;
 }
 
 .button-group button {
-  font-size: 1rem;
-  padding: 0px 0.3rem;
-  cursor: pointer;
+    font-size: 1rem;
+    padding: 0px 0.3rem;
+    cursor: pointer;
 }
 
 .button-group button:hover {
     opacity: 0.8;
     color: red;
-}
-
-#monthly-balance {
-    padding: 0.5rem;
-
-    border-radius: 10px;
-    box-shadow: 10px 10px;
 }

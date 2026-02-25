@@ -38,6 +38,7 @@ async function fetchOptions(columnName) {
     const data = await response.json();
     const tmpDic = {}
 
+
     data.forEach((label, index) => {
         const color = COLORS[index % COLORS.length];
         label = label[0]
@@ -142,12 +143,12 @@ function renderTable(tableId, rows, options = {}) {
             } else if (index === 3 && cell) { // Categories
                 const key = stringToKey(cell);
 
-                td.textContent = OPTIONS_CONFIG["category"][key].label || cell;
+                td.textContent = OPTIONS_CONFIG["category"][key].value || cell;
                 td.classList.add(`cat-${key}`);
             } else if (index === 4 && cell) { // Accounts
                 const key = stringToKey(cell);
 
-                td.textContent = OPTIONS_CONFIG["account"][key].label || cell;
+                td.textContent = OPTIONS_CONFIG["account"][key].value || cell;
                 td.classList.add(`acc-${key}`);
             } else {
                 td.textContent = cell;
@@ -310,6 +311,22 @@ async function loadBalanceTable() {
     renderBalanceTable("monthly-balance-table", rows);
 }
 
+function updateAccountTotal(rows) {
+    // rows format: [id, date, amount, note, category, account]
+
+    const total = rows.reduce((sum, row) => {
+        const amount = parseFloat(row[2]) || 0;
+        return sum + amount;
+    }, 0);
+
+    const totalElement = document.getElementById("account-balance");
+    totalElement.textContent = total.toFixed(2);
+
+    // Optional: color depending on sign
+    totalElement.classList.toggle("amount-negative", total < 0);
+    totalElement.classList.toggle("amount-positive", total >= 0);
+}
+
 async function loadEntryTables() {
     const response = await fetch("/entries");
     const data = await response.json();
@@ -326,6 +343,9 @@ async function loadEntryTables() {
             return stringToKey(account) === selectedAccount;
         });
     }
+
+    // update account balance
+    updateAccountTotal(filteredData);
 
     // All entries table
     renderTable("all-entries-table", filteredData);
@@ -388,7 +408,8 @@ function startEditEntry(id, fields, rowElement) {
         const option = document.createElement("option");
         option.value = val;
         option.textContent = config.label;
-        if (val === category) {
+        console.log(config.label, category)
+        if (config.label === category) {
             option.selected = true;
         }
         categorySelect.appendChild(option);
@@ -399,7 +420,8 @@ function startEditEntry(id, fields, rowElement) {
         const option = document.createElement("option");
         option.value = val;
         option.textContent = config.label;
-        if (val === account) {
+        console.log(val, account);
+        if (val === stringToKey(account)) {
             option.selected = true;
         }
         accountSelect.appendChild(option);
