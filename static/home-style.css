@@ -94,9 +94,10 @@ button:hover {
 }
 
 canvas {
-    background: var(--base01);
+    background-color: var(--base00);
     border: 1px solid var(--base04);
 }
+
 /* save form --- */
 #top-bar {
     position: sticky;
@@ -272,6 +273,15 @@ td button {
 /* thead { */
 /*     background-color: #f0f0f0; */
 /* } */
+
+/* chart ---*/
+
+#chartSection {
+    background-color: var(--base00);
+}
+#moneyChart {
+    background-color: rgba(0, 0, 0, 0);
+}
 
 /* table format --- */
 

@@ -461,7 +461,7 @@ def data():
         return flask.redirect('/')
     db = get_db(app)
     c = db.cursor()
-    c.execute(f"SELECT date, amount, category FROM {SQL_TABLE_NAME}")
+    c.execute(f"SELECT date, amount, category FROM {SQL_TABLE_NAME} WHERE date >= date('now', 'start of month', '-1 month')")
     rows = c.fetchall()
     return flask.jsonify([{"date": row[0], "amount": row[1], "category": row[2]} for row in rows])
 

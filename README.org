@@ -8,7 +8,7 @@ Les données sont stockées en local (SQL) et encodées. Ces données sont déco
 ** Prérequis :
 - Python 3 installé
 
-Python modules : `pip install flask datetime`
+Python modules : ~pip install flask datetime~
 
 ** Usage
 

@@ -65,12 +65,14 @@ function populateOptionDropdownList(selectId, optionName) {
     // Clear in case it’s re-run
     select.innerHTML = "";
 
-    Object.entries(OPTIONS_CONFIG[optionName]).forEach(([key, _]) => {
-        const option = document.createElement("option");
-        option.value = key;
-        option.textContent = key;
-        select.appendChild(option);
-    });
+    Object.entries(OPTIONS_CONFIG[optionName])
+        .sort(([a], [b]) => a.localeCompare(b))
+        .forEach(([key, _]) => {
+            const option = document.createElement("option");
+            option.value = key;
+            option.textContent = key;
+            select.appendChild(option);
+        });
 }
 
 function makeTableSortable(tableId) {
@@ -177,7 +179,7 @@ function renderBalanceTable(tableId, rows) {
     const tbody = table.querySelector("tbody");
     tbody.innerHTML = "";
 
-    rows.sort((a, b) => new Date(b[1]) - new Date(a[1]));
+    rows.sort((a, b) => new Date(b[0]) - new Date(a[0]));
 
     rows.forEach(row => {
         const [...fields] = row;
